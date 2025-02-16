@@ -1,49 +1,62 @@
 import random
+from concurrent.futures import ProcessPoolExecutor
+import multiprocessing
 
 # Parameters
 n = 20
 min_trials = 10000  # Minimum number of trials before checking error
 max_trials = 100000000  # Maximum number of trials to prevent infinite loop
 relative_error_threshold = 0.1  # Stop when relative error is below this value
+num_workers = multiprocessing.cpu_count()  # Use all available cores
 
-# Simulation
-success_count = 0
-trial_count = 0
+print("The script is running")
+print(f"n is specified as: {n}")
+print("good luck")
 
-while trial_count < max_trials:
-    # Randomly shuffle the boxes
+def run_trial(n):
+    """Perform a single trial of the prisoner problem."""
     boxes = list(range(n))
     random.shuffle(boxes)
-    
-    # Check if all prisoners succeed
-    success = True
+
     for prisoner in range(n):
-        # Determine the boxes this prisoner is allowed to check
         start_box = prisoner
         checked_boxes = [(start_box + i) % n for i in range(n // 2)]
-        
-        # Check if prisoner's number is in one of the checked boxes
         if prisoner not in [boxes[i] for i in checked_boxes]:
-            success = False
-            break
-    
-    if success:
-        success_count += 1
-    
-    trial_count += 1
+            return 0  # Failure
+    return 1  # Success
 
-    # Check relative error after minimum trials
-    if trial_count >= min_trials:
-        estimated_probability = success_count / trial_count
-        if success_count > 0:
-            relative_error = (1 / (success_count ** 0.5))
-        else:
-            relative_error = float('inf')
+def main():
+    trial_count = 0
+    success_count = 0
 
-        if relative_error < relative_error_threshold:
-            break
+    with ProcessPoolExecutor(max_workers=num_workers) as executor:
+        futures = []
+        batch_size = 1000  # Collect results in batches
+        while trial_count < max_trials:
+            # Submit batch
+            futures = [executor.submit(run_trial, n) for _ in range(batch_size)]
+            results = [future.result() for future in futures]
 
-# Final estimate
-estimated_probability = success_count / trial_count
-print(f"Estimated Probability of Success: {estimated_probability:.10f}")
-print(f"Number of Trials: {trial_count}")
+            success_count += sum(results)
+            trial_count += batch_size
+
+            if trial_count % 10000 == 0:
+                print(f"Trials: {trial_count}, Successes: {success_count}")
+
+            # Check relative error after minimum trials
+            if trial_count >= min_trials:
+                estimated_probability = success_count / trial_count
+                if success_count > 0:
+                    relative_error = (1 / (success_count ** 0.5))
+                else:
+                    relative_error = float('inf')
+
+                if relative_error < relative_error_threshold:
+                    break
+
+    estimated_probability = success_count / trial_count
+    print(f"Estimated Probability of Success: {estimated_probability:.10f}")
+    print(f"Number of Trials: {trial_count}")
+
+if __name__ == '__main__':
+    main()
