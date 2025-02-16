@@ -1,4 +1,4 @@
-# version 0.2
+# version 0.2.1
 import random
 from concurrent.futures import ProcessPoolExecutor
 import multiprocessing
@@ -7,8 +7,8 @@ import time
 # Parameters
 n = 20
 min_trials = 10000  # Minimum number of trials before checking error
-max_trials = 100000000  # Maximum number of trials to prevent infinite loop
-relative_error_threshold = 0.1  # Stop when relative error is below this value
+max_trials = 500000000  # Maximum number of trials to prevent infinite loop
+relative_error_threshold = 0.05  # Stop when relative error is below this value
 num_workers = multiprocessing.cpu_count()  # Use all available cores
 
 print("The script is running")
